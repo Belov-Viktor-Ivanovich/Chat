@@ -23,7 +23,7 @@
                 ItemsSource="{Binding FileNames,UpdateSourceTrigger=PropertyChanged,Mode=TwoWay}" 
                       Foreground="Black"
                 Background="White"                     
-                SelectionMode="Extended" AllowDrop="True" x:Name="viewList" Visibility="Visible"  ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="0,44,0,0" Grid.RowSpan="2"/>
+                SelectionMode="Extended" AllowDrop="True" x:Name="viewList" Visibility="Visible"  ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="0,44,0,0" Grid.RowSpan="2" MouseDoubleClick="viewList_MouseDoubleClick"/>
             <TextBox x:Name="textBoxSendMassege" HorizontalAlignment="Left" Grid.Row="2" TextWrapping="Wrap" Text="Hello" FontSize="16" VerticalAlignment="Center" Width="328" Height="59" Margin="10,0,0,0"/>
             <Button Content="Send" Style="{StaticResource RoundButtonTemplate}" Background="GreenYellow" FontSize="20" HorizontalAlignment="Left" Margin="412,0,0,0" Grid.Row="2" VerticalAlignment="Center" Height="59" Width="57" Click="Button_Click_1"/>
             <Label x:Name="labelOnline" Grid.Column="1" Content="Online" FontSize="20" HorizontalAlignment="Left" Margin="41,10,0,0" VerticalAlignment="Top" Height="34" Width="295"/>

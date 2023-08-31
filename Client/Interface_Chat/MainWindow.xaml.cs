@@ -25,6 +25,7 @@ using NAudio.Wave;
 using NAudio.FileFormats;
 using NAudio.CoreAudioApi;
 using System.IO;
+using ControllerDLL_Chat;
 
 namespace Interface_Chat
 {
@@ -34,18 +35,7 @@ namespace Interface_Chat
     /// ScrollViewer.VerticalScrollBarVisibility="Auto"
     public partial class MainWindow : Window
     {
-        public static int num = 0;
-        WaveIn input;
-        WaveFileWriter writer;
-        string outputFilename = "";
-        static TcpClient tcpClient = new TcpClient();
-        static NetworkStream networkStream;
-        static NetworkStream networkStreamRecieve;
-        static string Host = System.Net.Dns.GetHostName();
-        static string IP = Dns.GetHostByName(Host).AddressList[0].ToString();
-        static int port = 8888;
-        static Json client = new Json();
-        DateTime dateTime;
+        
         public MainWindow()
         {
             InitializeComponent();
@@ -56,21 +46,53 @@ namespace Interface_Chat
         {
             if (textBoxLogin.Text != "")
             {
-                client.Name = textBoxLogin.Text;
-                tcpClient.Connect(IP, port); //подключение клиента
-                networkStream = tcpClient.GetStream();
-                networkStreamRecieve = tcpClient.GetStream();
-                loginGrid.Visibility = Visibility.Collapsed;
-                gridViewList.Visibility = Visibility.Visible;
-                onlinelistBox.Items.Add($"{client.Name}");
-                var t= SendMassegeAutorizationAsync();
-                await t;
-                await networkStream.FlushAsync();
-                await ReciveMassege(networkStreamRecieve);
+                //если с контроллера бз true
+                if (true)
+                {
+                    Parse(await Controller_Chat.ConnectAsync(textBoxLogin.Text));
+                    loginGrid.Visibility = Visibility.Collapsed;
+                    gridViewList.Visibility = Visibility.Visible;
+                    await Recieve();
+                    //onlinelistBox.Items.Add($"{client.Name}");
+                    /*var t = SendMassegeAutorizationAsync();
+                    await t;
+                    await networkStream.FlushAsync();
+                    await ReciveMassege(networkStream);*/
+                }
             }
             else
             {
                 MessageBox.Show("Введите логин");
+            }
+        }
+        private async Task Recieve()
+        {
+            while (true) 
+            {
+                Parse(await Controller_Chat.Recived());
+                viewList.ScrollIntoView(viewList.Items[viewList.Items.Count - 1]);
+            }
+        }
+
+        void Parse(string str)
+        {
+            onlinelistBox.Items.Clear();
+            string[] strArr = str.Split(';');
+            string[] strUsers = strArr[0].Split(',');
+            for (int i = 0;i<strUsers.Length;i++)
+            {
+                onlinelistBox.Items.Add(strUsers[i].ToString());
+            }
+            if (strArr.Length > 1)
+            {
+                if (strArr[2] == "audio")
+                {
+                    addListViewEl("audio", strArr[1]);
+                }
+                else
+                {
+                    viewList.Items.Add(strArr[1]);
+                }
             }
         }
 
@@ -78,137 +100,28 @@ namespace Interface_Chat
         {
             if (textBoxSendMassege.Text != "")
             {
-                dateTime = DateTime.Now;
-                client.message = textBoxSendMassege.Text;
-                client.status = "message";
-                await SendMassege();
+                await Controller_Chat.SendMassege("message", textBoxSendMassege.Text);
             }
         }
 
         //Отправка сообщения
-        static async Task SendMassege()
-        {
-            var send = JsonSerializer.Serialize(client);
-            var sendArray = Encoding.UTF8.GetBytes(send);
-            await networkStream.WriteAsync(sendArray, 0, sendArray.Length);
-        }
-        static async Task ReadOk()
-        {
-            var buf = new byte[1024];
-            await networkStream.ReadAsync(buf, 0, buf.Length);
-        }
-        async Task SendMassegeAutorizationAsync()
-        {
-            var send = JsonSerializer.Serialize(client);
-            var sendArray = Encoding.UTF8.GetBytes(send);
-            await networkStream.WriteAsync(sendArray, 0, sendArray.Length);
-            byte[] getBytes = new byte[1024];
-            int count = await networkStream.ReadAsync(getBytes, 0, getBytes.Length);
-            string result = Encoding.UTF8.GetString(getBytes, 0, count);
-            var clientResult = JsonSerializer.Deserialize<Json>(result);
-            onlinelistBox.Items.Clear();
-            for (int i = 0; i < clientResult.OnlineClient.Count; i++)
-            {
-                onlinelistBox.Items.Add(clientResult.OnlineClient[i].ToString());
-            }
-        }
-        //Получение
-        async Task ReciveMassege(NetworkStream ns)
-        {
-            while (true)
-            {
-                try
-                {
-                    byte[] getBytes = new byte[1024];
-                    int count = await ns.ReadAsync(getBytes, 0, getBytes.Length);
-                    string result = Encoding.UTF8.GetString(getBytes, 0, count);
-                    var clientResult = JsonSerializer.Deserialize<Json>(result);
-                    onlinelistBox.Items.Clear();
-                    for (int i = 0; i < clientResult.OnlineClient.Count; i++)
-                    {
-                        onlinelistBox.Items.Add(clientResult.OnlineClient[i].ToString());
-                    }
-                    dateTime = DateTime.Now;
-                    if (clientResult.status == "message")
-                    {
-                        var str = $"[{dateTime.Day}/{dateTime.Month}/{dateTime.Year} {dateTime.Hour}:{dateTime.Minute}]\t" +
-                    $"{clientResult.Name}: *** {clientResult.message} ***";
-                        if (clientResult.message != "")
-                            viewList.Items.Add(str);
-                    }
-                    else if(clientResult.status == "clientClose")
-                    {
-                        var str = $"[{dateTime.Day}/{dateTime.Month}/{dateTime.Year} {dateTime.Hour}:{dateTime.Minute}]\t" +
-                    $"{clientResult.Name}: *** ОТКЛЮЧИЛСЯ!!! ***";
-                        viewList.Items.Add(str);
 
-                    }
-                    else if(clientResult.status =="audio")
-                    {
-                        MessageBox.Show("сделать StackPanel,добавить в него иконку аудио и от кого и дату сообщения");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message);
-                }
-            }
-        }
 
-        [Obsolete]
-        void waveIn_DataAvailable(object sender, WaveInEventArgs e)
-        {
-            try
-            {
-                //Записываем данные из буфера в файл
-                writer.WriteData(e.Buffer, 0, e.BytesRecorded);
-            }
-            catch (Exception ex)
-            {
-
-                MessageBox.Show(ex.Message, "Error waveIn_DataAvailable");
-            }
-                
-        }
-        private void waveIn_RecordingStopped(object sender, EventArgs e)
-        {
-            try
-            {
-                input.Dispose();
-                input = null;
-                writer.Close();
-                writer = null;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Error waveIn_RecordingStopped");
-            }
-            
-        }
-        void StopRecording()
-        {
-            input.StopRecording();
-        }
         private void exitButton_Click(object sender, RoutedEventArgs e)
         {
-             Close();                    
+            Close();
         }
 
+
+
+
+
         [Obsolete]
-        private void VoiceButon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private async void VoiceButon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             try
             {
-
-                dateTime = DateTime.Now;
-                outputFilename = $"{client.Name}_{dateTime.Year}.{dateTime.Month}.{dateTime.Day} {dateTime.Hour}-{dateTime.Minute}-{dateTime.Second}.wav";
-                input = new WaveIn();
-                input.DeviceNumber = 0;
-                input.DataAvailable += waveIn_DataAvailable;
-                input.RecordingStopped += new EventHandler<StoppedEventArgs>(waveIn_RecordingStopped);
-                input.WaveFormat = new WaveFormat(8000, 1);
-                writer = new WaveFileWriter(outputFilename, input.WaveFormat);
-                input.StartRecording();
+                await Controller_Chat.ButtonVoiceDown();
             }
             catch (Exception ex)
             {
@@ -220,87 +133,45 @@ namespace Interface_Chat
 
         private async void VoiceButon_MouseLeftButtonUpAsync(object sender, MouseButtonEventArgs e)
         {
-            if (input != null)
-            {
-                StopRecording();
-                client.status = "audio";
-                dateTime = DateTime.Now;
-                client.message = $"{outputFilename}";
-                await SendMassege();
-                await ReadOk();
-                byte[] data = File.ReadAllBytes($"{Directory.GetCurrentDirectory()}\\{outputFilename}.wav");
-                await networkStream.WriteAsync(data, 0, data.Length);
-            }
+            await Controller_Chat.ButtonVoiceUp();
         }
 
         
         #region Для иконок аудио и других файлов
-        void addListViewEl(string str, string name, DateTime dateTime)
+        void addListViewEl(string str, string name)
         {
             if (File.Exists($"{str}.ico"))
             {
-                using (MemoryStream ms = new MemoryStream(File.ReadAllBytes($"{str}.ico")))
-                {
                     StackPanel s = new StackPanel();
                     s.Orientation = Orientation.Horizontal;
                     Image img = new Image();
                     TextBlock tb = new TextBlock();
-                    BitmapImage bitmapImage = new BitmapImage();
-                    bitmapImage.BeginInit();
-                    bitmapImage.StreamSource = ms;
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.EndInit();
-                    img.Source = bitmapImage;
+                    img.Source = new BitmapImage(new Uri(Directory.GetCurrentDirectory() + $@"\{str}.ico"));
                     img.Height = 16; img.Width = 16;
-
                     tb.FontSize = 16;
                     tb.Text = $" {name}";
                     s.Children.Add(img);
                     s.Children.Add(tb);
-                    viewList.Items.Add(s);
-                    viewList.Visibility = Visibility.Visible;
-                    ms.Close();
-                    ms.Dispose();
-                }
-
-            }
-            else
-            {
-                using (MemoryStream ms = new MemoryStream(File.ReadAllBytes($"unknown.ico")))
-                {
-                    StackPanel s = new StackPanel();
-                    s.Orientation = Orientation.Horizontal;
-                    Image img = new Image();
-                    TextBlock tb = new TextBlock();
-                    BitmapImage bitmapImage = new BitmapImage();
-                    bitmapImage.BeginInit();
-                    bitmapImage.StreamSource = ms;
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.EndInit();
-                    img.Source = bitmapImage;
-                    img.Height = 16; img.Width = 16;
-
-                    tb.FontSize = 16;
-                    tb.Text = $" {name}";
-                    s.Children.Add(img);
-                    s.Children.Add(tb);
-                    viewList.Items.Add(s);
-                    viewList.Visibility = Visibility.Visible;
-                    ms.Close();
-                    ms.Dispose();
-                }
+                    viewList.Items.Add(s);              
             }
         }
         #endregion
-    }
-    public class Json
-    {
 
-        public List<string> OnlineClient { get; set; }=new List<string>();
-        public string Name { get; set; }
-        public string message { get; set; } = "";
-        public string status { get; set; }
-        public string key { get; set; } = "";
+        private async void viewList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                var a = ((((sender as ListView).SelectedItem) as StackPanel).Children[0]) as Image;
+                var b = ((((sender as ListView).SelectedItem) as StackPanel).Children[1]) as TextBlock;
+
+                await Controller_Chat.DownAndOpenFile(b.Text.Substring(1));
+
+
+            }
+            catch (Exception) { }
+
+        }
     }
+    
 
 }
