@@ -32,8 +32,8 @@ namespace Server_Chat
             {
                 TcpClient tcpAudio = await serverChatAudio.AcceptTcpClientAsync();
                 await Console.Out.WriteLineAsync("Connect AUDIO");
-                Client clientObjectAudio = new Client(tcpAudio, Serv);
-                _ = Task.Run(() => clientObjectAudio.RecieveAndSendAUDIOAsync());
+                Client clientObjectAudioAndFile = new Client(tcpAudio, Serv);
+                _ = Task.Run(() => clientObjectAudioAndFile.RecieveAndSendAUDIOAsync());
             }
         }
 
@@ -145,11 +145,13 @@ namespace Server_Chat
                         await UploadFile(networkStreamClient, path, clientResult.message);
                         await Server.BroadcastMessageAsync(clientResult);
                     }
-                    else if (clientResult.status == "download")
+                    else if (clientResult.status == "upload")
                     {
                         await Console.Out.WriteLineAsync(clientResult.message);
-                        string path = Directory.GetCurrentDirectory() + @"\Files\audio";
-                        await DownloadFile(networkStreamClient, path, clientResult.message);
+                        string path = Directory.GetCurrentDirectory() + @"\Files\file";
+                        Directory.CreateDirectory(path);
+                        await UploadFile(networkStreamClient, path, clientResult.message);
+                        await Server.BroadcastMessageAsync(clientResult);
                     }
 
                 }
@@ -178,6 +180,11 @@ namespace Server_Chat
                     if (clientResult.status == "audio")
                     {
                         string path = Directory.GetCurrentDirectory() + @"\Files\audio";
+                        await DownloadFile(networkStreamClient, path, clientResult.message);
+                    }
+                    else if (clientResult.status == "upload")
+                    {
+                        string path = Directory.GetCurrentDirectory() + @"\Files\file";
                         await DownloadFile(networkStreamClient, path, clientResult.message);
                     }
 

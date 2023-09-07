@@ -87,6 +87,12 @@ namespace ControllerDLL_Chat
                     message += $";{clientResult.message};";
                     message += "audio";
                 }
+                else if (clientResult.status == "upload")
+                {
+                    dateTime = DateTime.Now;
+                    message += $";{client.Name}_{dateTime.Year}.{dateTime.Month}.{dateTime.Day} {dateTime.Hour}-{dateTime.Minute}-{dateTime.Second}: {clientResult.message};";
+                    message += "upload";
+                }
                 else
                 {
                     message += $";[{dateTime.Day}/{dateTime.Month}/{dateTime.Year} {dateTime.Hour}:{dateTime.Minute}]\t" +
@@ -165,6 +171,27 @@ namespace ControllerDLL_Chat
                 File.Delete($@"{Directory.GetCurrentDirectory()}\{outputFilename}");
             }
         }
+        public static async Task UploadFile(string name,string path)
+        {
+            try
+            {
+                dateTime = DateTime.Now;
+                client.status = "upload";
+                client.message = name;
+                var send = JsonSerializer.Serialize(client);
+                var sendArray = Encoding.UTF8.GetBytes(send);
+                await networkStream.WriteAsync(sendArray, 0, sendArray.Length);
+                byte[] data = File.ReadAllBytes(path);
+                await networkStream.WriteAsync(data, 0, data.Length);
+
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+
+        }
         public static async Task DownAndOpenFile(string filename)
         {
             TcpClient tcpClientRead = new TcpClient();
@@ -173,8 +200,10 @@ namespace ControllerDLL_Chat
             {
                 await tcpClientRead.ConnectAsync(IP, port2); //подключение клиента
                 networkStreamRead = tcpClientRead.GetStream();
-                client.status = "audio";
                 client.message = filename;
+                if (filename.Substring(filename.LastIndexOf(".") + 1) == "wav")
+                    client.status = "audio";
+                else client.status = "upload";
                 var send = JsonSerializer.Serialize(client);
                 var sendArray = Encoding.UTF8.GetBytes(send);
                 await networkStreamRead.WriteAsync(sendArray, 0, sendArray.Length);

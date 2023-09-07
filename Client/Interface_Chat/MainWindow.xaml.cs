@@ -26,6 +26,7 @@ using NAudio.FileFormats;
 using NAudio.CoreAudioApi;
 using System.IO;
 using ControllerDLL_Chat;
+using Microsoft.Win32;
 
 namespace Interface_Chat
 {
@@ -89,6 +90,10 @@ namespace Interface_Chat
                 {
                     addListViewEl("audio", strArr[1]);
                 }
+                else if (strArr[2]=="upload")
+                {
+                    addListViewEl("file", strArr[1]);
+                }
                 else
                 {
                     viewList.Items.Add(strArr[1]);
@@ -142,17 +147,18 @@ namespace Interface_Chat
         {
             if (File.Exists($"{str}.ico"))
             {
-                    StackPanel s = new StackPanel();
-                    s.Orientation = Orientation.Horizontal;
-                    Image img = new Image();
-                    TextBlock tb = new TextBlock();
-                    img.Source = new BitmapImage(new Uri(Directory.GetCurrentDirectory() + $@"\{str}.ico"));
-                    img.Height = 16; img.Width = 16;
-                    tb.FontSize = 16;
-                    tb.Text = $" {name}";
-                    s.Children.Add(img);
-                    s.Children.Add(tb);
-                    viewList.Items.Add(s);              
+                StackPanel s = new StackPanel();
+                s.Orientation = Orientation.Horizontal;
+                Image img = new Image();
+                img.Name = str;
+                TextBlock tb = new TextBlock();
+                img.Source = new BitmapImage(new Uri(Directory.GetCurrentDirectory() + $@"\{str}.ico"));
+                img.Height = 16; img.Width = 16;
+                tb.FontSize = 16;
+                tb.Text = $" {name}";
+                s.Children.Add(img);
+                s.Children.Add(tb);
+                viewList.Items.Add(s);
             }
         }
         #endregion
@@ -163,13 +169,29 @@ namespace Interface_Chat
             {
                 var a = ((((sender as ListView).SelectedItem) as StackPanel).Children[0]) as Image;
                 var b = ((((sender as ListView).SelectedItem) as StackPanel).Children[1]) as TextBlock;
+                if (a.Name == "audio")
+                    await Controller_Chat.DownAndOpenFile(b.Text.Substring(1));
+                else if (a.Name == "file")
+                {
+                    string buf = b.Text.Substring(b.Text.LastIndexOf("!") + 1).Substring(1);
+                    await Controller_Chat.DownAndOpenFile(b.Text.Substring(b.Text.LastIndexOf(":") + 1).Substring(1));
+                    MessageBox.Show($@"Файл скачан в: {"\n"}{Directory.GetCurrentDirectory()}\{b.Text.Substring(b.Text.LastIndexOf(":") + 1).Substring(1)}");
 
-                await Controller_Chat.DownAndOpenFile(b.Text.Substring(1));
+                }
 
 
             }
             catch (Exception) { }
 
+        }
+
+        private async void FileButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            if (ofd.ShowDialog() == true)
+            {
+                await Controller_Chat.UploadFile(ofd.FileName.Substring(ofd.FileName.LastIndexOf("\\") + 1), ofd.FileName);
+            }
         }
     }
     

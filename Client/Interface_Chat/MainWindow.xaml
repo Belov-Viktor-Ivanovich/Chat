@@ -30,7 +30,7 @@
             <ListBox x:Name="onlinelistBox" Grid.Column="1" d:ItemsSource="{d:SampleData ItemCount=5}" Margin="0,44,0,0" Grid.RowSpan="2"/>
             <Button x:Name="exitButton" Style="{StaticResource RoundButtonTemplate}" Background="Red" Grid.Column="1" Content="Покинуть чат" HorizontalAlignment="Right" Grid.Row="2" VerticalAlignment="Center" IsDefault="True" FontSize="20" Height="59" Width="172" Click="exitButton_Click" />
             <Button x:Name="RecButton" Content="REC" Style="{StaticResource RoundButtonTemplate}" Background="Green" FontSize="20" HorizontalAlignment="Left" Margin="343,0,0,0" Grid.Row="2" VerticalAlignment="Center" Height="59" Width="64"/>
-            <Button x:Name="FileButton" Content="Dowl" Style="{StaticResource RoundButtonTemplate}" Background="Green" FontSize="20" HorizontalAlignment="Left" Margin="343,0,0,0" Grid.Row="2" VerticalAlignment="Center" Height="59" Width="64"/>
+            <Button x:Name="FileButton" Content="Down" Style="{StaticResource RoundButtonTemplate}" Background="Green" FontSize="20" HorizontalAlignment="Left" Margin="343,0,0,0" Grid.Row="2" VerticalAlignment="Center" Height="59" Width="64" Click="FileButton_Click"/>
             <Button x:Name="VoiceButon" Content="Voice" Style="{StaticResource RoundButtonTemplate}" Background="Blue" FontSize="20" HorizontalAlignment="Left" Margin="474,0,0,0" Grid.Row="2" VerticalAlignment="Center" Height="59" Width="64" PreviewMouseLeftButtonDown="VoiceButon_MouseLeftButtonDown" PreviewMouseLeftButtonUp="VoiceButon_MouseLeftButtonUpAsync"/>
         </Grid>
         <Grid x:Name="loginGrid" Margin="196,19,196,20" Visibility="Visible">
